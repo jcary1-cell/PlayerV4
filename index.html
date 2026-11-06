@@ -60,11 +60,10 @@
 
         /* Enforce responsive boundaries on injected iframes */
         #activePlayer iframe {
+            width: 100%;
             max-width: 100%;
             border-radius: 0.75rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
-            /* Prevent horizontal scrolling on large embeds */
-            max-height: 100%;
             margin: 0 auto;
             display: block;
         }
@@ -140,16 +139,21 @@
         <!-- Right Column: Player Display Section -->
         <div class="w-full lg:w-7/12 flex flex-col">
             <div class="bg-dark-800 rounded-2xl p-6 border border-dark-700 shadow-xl flex flex-col h-full min-h-[400px]">
-                <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <i class="fa-solid fa-compact-disc text-brand-400"></i>
-                    Player View
-                </h2>
+                <div class="mb-6 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-compact-disc text-brand-400"></i>
+                        Player View
+                    </h2>
+                    <button id="clearTracksBtn" class="text-sm text-gray-400 hover:text-red-400 transition-colors hidden" aria-label="Clear Tracks">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Clear Tracks
+                    </button>
+                </div>
 
                 <!-- Display Area -->
-                <div id="playerContainer" class="flex-grow flex items-center justify-center bg-dark-900/50 rounded-xl border border-dark-700/50 relative overflow-hidden p-4">
+                <div id="playerContainer" class="flex-grow bg-dark-900/50 rounded-xl border border-dark-700/50 relative overflow-y-auto p-4 max-h-[500px] lg:max-h-[700px] flex flex-col">
                     
                     <!-- Empty State Placeholder -->
-                    <div id="placeholder" class="text-center flex flex-col items-center justify-center p-8 transition-opacity duration-300">
+                    <div id="placeholder" class="text-center flex-grow flex flex-col items-center justify-center p-8 transition-opacity duration-300">
                         <div class="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mb-4 shadow-inner">
                             <i class="fa-solid fa-music text-3xl text-dark-700"></i>
                         </div>
@@ -160,12 +164,12 @@
                     </div>
 
                     <!-- Active Player Container (Where the HTML is injected) -->
-                    <div id="activePlayer" class="w-full h-full flex items-center justify-center hidden opacity-0 transition-opacity duration-500">
+                    <div id="activePlayer" class="w-full flex flex-col gap-6 hidden opacity-0 transition-opacity duration-500 pb-4">
                         <!-- Raw HTML will be dumped here -->
                     </div>
 
                     <!-- Loading overlay (optional UX enhancement) -->
-                    <div id="loadingOverlay" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm flex items-center justify-center hidden z-10">
+                    <div id="loadingOverlay" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm flex items-center justify-center hidden z-10 rounded-xl">
                         <i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-500"></i>
                     </div>
                 </div>
@@ -192,9 +196,11 @@
             const embedInput = document.getElementById('embedInput');
             const loadBtn = document.getElementById('loadBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const clearTracksBtn = document.getElementById('clearTracksBtn');
             const placeholder = document.getElementById('placeholder');
             const activePlayer = document.getElementById('activePlayer');
             const loadingOverlay = document.getElementById('loadingOverlay');
+            const playerContainer = document.getElementById('playerContainer');
 
             // Function to show/hide the clear button based on input
             const toggleClearButton = () => {
@@ -229,32 +235,40 @@
 
                 // Simulate processing time and load
                 setTimeout(() => {
-                    // Inject the raw HTML
+                    // Inject the raw HTML (append it so tracks stack vertically)
                     // NOTE: In a real server environment with shared links, DOMPurify is heavily recommended to prevent XSS.
-                    // Since this is a personal client-side utility where users paste their own intended codes, innerHTML handles exactly what is requested.
-                    activePlayer.innerHTML = code;
+                    activePlayer.insertAdjacentHTML('beforeend', code);
                     
                     // Hide loading, show player with fade-in
                     loadingOverlay.classList.add('hidden');
                     activePlayer.classList.remove('hidden');
+                    clearTracksBtn.classList.remove('hidden');
                     
                     // Trigger reflow to apply transition
                     void activePlayer.offsetWidth; 
                     activePlayer.classList.add('opacity-100');
+
+                    // Auto-scroll to the bottom of the container to see the newly added track
+                    setTimeout(() => {
+                        playerContainer.scrollTop = playerContainer.scrollHeight;
+                    }, 100);
                 }, 400);
             });
 
-            // Handle Clear Action
+            // Handle Clear Input Action (Now only clears the text box so you can keep stacking)
             clearBtn.addEventListener('click', () => {
                 embedInput.value = '';
                 toggleClearButton();
-                
-                // Reset View
+            });
+
+            // Handle Clear Tracks Action
+            clearTracksBtn.addEventListener('click', () => {
                 activePlayer.classList.remove('opacity-100');
                 setTimeout(() => {
                     activePlayer.innerHTML = '';
                     activePlayer.classList.add('hidden');
                     placeholder.classList.remove('hidden');
+                    clearTracksBtn.classList.add('hidden');
                 }, 300); // Wait for fade out
             });
         });
