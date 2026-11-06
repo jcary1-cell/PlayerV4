@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamRender | Embed Player</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load FontAwesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Configure Tailwind for Dark Theme & Custom Colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: '#a78bfa', // Purple 400
+                            500: '#8b5cf6', // Purple 500
+                            600: '#7c3aed', // Purple 600
+                        },
+                        dark: {
+                            900: '#0f172a', // Slate 900
+                            800: '#1e293b', // Slate 800
+                            700: '#334155', // Slate 700
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom Styles for Scrollbars and injected embeds -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Fallback */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+
+        /* Enforce responsive boundaries on injected iframes */
+        #activePlayer iframe {
+            max-width: 100%;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+            /* Prevent horizontal scrolling on large embeds */
+            max-height: 100%;
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-gray-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Navbar -->
+    <header class="bg-dark-800/80 backdrop-blur-md border-b border-dark-700 sticky top-0 z-50">
+        <div class="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-play text-white text-lg ml-1"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Stream<span class="text-brand-400">Render</span></h1>
+            </div>
+            <div>
+                <a href="#" class="text-gray-400 hover:text-white transition-colors" title="Settings">
+                    <i class="fa-solid fa-sliders text-xl"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 py-8 flex flex-col lg:flex-row gap-8 max-w-6xl">
+        
+        <!-- Left Column: Input Section -->
+        <div class="w-full lg:w-5/12 flex flex-col gap-6">
+            <div class="bg-dark-800 rounded-2xl p-6 border border-dark-700 shadow-xl flex flex-col h-full">
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-code text-brand-400"></i>
+                        Source Embed Code
+                    </h2>
+                    <button id="clearBtn" class="text-sm text-gray-400 hover:text-red-400 transition-colors hidden group relative" aria-label="Clear Input">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-dark-700 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Clear</span>
+                    </button>
+                </div>
+                
+                <p class="text-sm text-gray-400 mb-4">
+                    Paste your raw HTML `&lt;iframe&gt;` code from Spotify, SoundCloud, YouTube, or Apple Music below.
+                </p>
+
+                <div class="relative flex-grow flex flex-col mb-6">
+                    <textarea 
+                        id="embedInput" 
+                        class="w-full flex-grow min-h-[250px] bg-dark-900 border border-dark-700 rounded-xl p-4 text-sm font-mono text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none shadow-inner"
+                        placeholder="<iframe src='https://open.spotify.com/embed/...' width='100%' height='352' frameBorder='0' allowfullscreen='' allow='autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture'></iframe>"
+                        spellcheck="false"
+                    ></textarea>
+                </div>
+
+                <button id="loadBtn" class="w-full bg-brand-500 hover:bg-brand-400 active:bg-brand-600 text-white font-medium py-3 px-6 rounded-xl shadow-lg shadow-brand-500/25 transition-all duration-200 flex items-center justify-center gap-2 group">
+                    <i class="fa-solid fa-bolt text-brand-100 group-hover:scale-110 transition-transform"></i>
+                    Load Media
+                </button>
+            </div>
+            
+            <!-- Quick Tips Panel -->
+            <div class="bg-dark-800/50 rounded-2xl p-5 border border-dark-700 border-dashed">
+                <h3 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-lightbulb text-yellow-500"></i> Tip
+                </h3>
+                <ul class="text-sm text-gray-400 space-y-2 list-disc list-inside">
+                    <li>Works best with <span class="text-white">Spotify</span>, <span class="text-white">SoundCloud</span>, and <span class="text-white">YouTube</span> embed codes.</li>
+                    <li>Ensure you are copying the full <code class="bg-dark-900 px-1 py-0.5 rounded text-brand-300 font-mono">&lt;iframe&gt;</code> HTML.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Player Display Section -->
+        <div class="w-full lg:w-7/12 flex flex-col">
+            <div class="bg-dark-800 rounded-2xl p-6 border border-dark-700 shadow-xl flex flex-col h-full min-h-[400px]">
+                <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-compact-disc text-brand-400"></i>
+                    Player View
+                </h2>
+
+                <!-- Display Area -->
+                <div id="playerContainer" class="flex-grow flex items-center justify-center bg-dark-900/50 rounded-xl border border-dark-700/50 relative overflow-hidden p-4">
+                    
+                    <!-- Empty State Placeholder -->
+                    <div id="placeholder" class="text-center flex flex-col items-center justify-center p-8 transition-opacity duration-300">
+                        <div class="w-20 h-20 bg-dark-800 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                            <i class="fa-solid fa-music text-3xl text-dark-700"></i>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-300 mb-2">No Media Loaded</h3>
+                        <p class="text-gray-500 text-sm max-w-xs mx-auto">
+                            Paste your embed code on the left and click "Load Media" to start playing.
+                        </p>
+                    </div>
+
+                    <!-- Active Player Container (Where the HTML is injected) -->
+                    <div id="activePlayer" class="w-full h-full flex items-center justify-center hidden opacity-0 transition-opacity duration-500">
+                        <!-- Raw HTML will be dumped here -->
+                    </div>
+
+                    <!-- Loading overlay (optional UX enhancement) -->
+                    <div id="loadingOverlay" class="absolute inset-0 bg-dark-900/80 backdrop-blur-sm flex items-center justify-center hidden z-10">
+                        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-500"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-dark-700 bg-dark-800/50 mt-auto py-6">
+        <div class="container mx-auto px-4 md:px-6 text-center text-sm text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>&copy; 2026 StreamRender. Client-side media rendering.</p>
+            <div class="flex gap-4">
+                <i class="fa-brands fa-spotify hover:text-green-400 cursor-pointer transition-colors text-lg" title="Spotify Supported"></i>
+                <i class="fa-brands fa-soundcloud hover:text-orange-500 cursor-pointer transition-colors text-lg" title="SoundCloud Supported"></i>
+                <i class="fa-brands fa-youtube hover:text-red-500 cursor-pointer transition-colors text-lg" title="YouTube Supported"></i>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const embedInput = document.getElementById('embedInput');
+            const loadBtn = document.getElementById('loadBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const placeholder = document.getElementById('placeholder');
+            const activePlayer = document.getElementById('activePlayer');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            // Function to show/hide the clear button based on input
+            const toggleClearButton = () => {
+                if (embedInput.value.trim().length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            };
+
+            // Listen for typing to show clear button
+            embedInput.addEventListener('input', toggleClearButton);
+
+            // Handle Load Media Action
+            loadBtn.addEventListener('click', () => {
+                const code = embedInput.value.trim();
+
+                if (!code) {
+                    // Visual feedback for empty input
+                    embedInput.classList.add('ring-2', 'ring-red-500', 'border-red-500');
+                    setTimeout(() => {
+                        embedInput.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
+                    }, 800);
+                    return;
+                }
+
+                // Show loading overlay briefly for UX
+                loadingOverlay.classList.remove('hidden');
+                activePlayer.classList.add('hidden');
+                activePlayer.classList.remove('opacity-100');
+                placeholder.classList.add('hidden');
+
+                // Simulate processing time and load
+                setTimeout(() => {
+                    // Inject the raw HTML
+                    // NOTE: In a real server environment with shared links, DOMPurify is heavily recommended to prevent XSS.
+                    // Since this is a personal client-side utility where users paste their own intended codes, innerHTML handles exactly what is requested.
+                    activePlayer.innerHTML = code;
+                    
+                    // Hide loading, show player with fade-in
+                    loadingOverlay.classList.add('hidden');
+                    activePlayer.classList.remove('hidden');
+                    
+                    // Trigger reflow to apply transition
+                    void activePlayer.offsetWidth; 
+                    activePlayer.classList.add('opacity-100');
+                }, 400);
+            });
+
+            // Handle Clear Action
+            clearBtn.addEventListener('click', () => {
+                embedInput.value = '';
+                toggleClearButton();
+                
+                // Reset View
+                activePlayer.classList.remove('opacity-100');
+                setTimeout(() => {
+                    activePlayer.innerHTML = '';
+                    activePlayer.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                }, 300); // Wait for fade out
+            });
+        });
+    </script>
+</body>
+</html>
